@@ -1,11 +1,9 @@
-// server.js 개선 버전 (MCP stdio to SSE 안정화)
-
 import express from 'express';
 import { spawn } from 'child_process';
 
 const app = express();
 const port = 3001;
-
+// Only send contentBlock messages
 app.get('/sse', (req, res) => {
   const dbUrl = req.query.db_url;
 
@@ -35,11 +33,14 @@ app.get('/sse', (req, res) => {
     lines.forEach((line) => {
       try {
         const json = JSON.parse(line);
-        res.write(`data: ${JSON.stringify(json)}\n\n`);
+
+        if (json.type === 'contentBlock') {
+          res.write(`data: ${JSON.stringify(json)}\n\n`);
+        } else {
+          console.log('Skipping non-contentBlock:', json.type);
+        }
       } catch (err) {
         console.error('Invalid JSON chunk skipped:', line);
-        // Optionally, you can send raw line (not recommended)
-        // res.write(`data: ${line}\n\n`);
       }
     });
   });
